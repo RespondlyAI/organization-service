@@ -18,7 +18,7 @@ spring:
     hibernate:
       # We will use 'update' strictly for today to let Spring generate our tables initially.
       # Once we finalize the entities, we will switch this to 'validate' and extract the SQL for Flyway.
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -28,7 +28,7 @@ spring:
 
   # We will turn Flyway off temporarily just while we write our Java Entity classes.
   flyway:
-    enabled: false
+    enabled: true
     locations: classpath:db/migration
 
 springdoc:
