@@ -24,6 +24,7 @@ public class OrganizationController {
             @Valid @RequestBody CreateOrganizationRequest request
     ) {
 
+
         log.info("Received request to create organization: {}", request.name());
 
         // Temporary hardcoded user ID.
