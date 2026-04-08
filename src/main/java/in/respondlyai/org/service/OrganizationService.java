@@ -3,10 +3,17 @@ package in.respondlyai.org.service;
 import in.respondlyai.org.dto.request.CreateOrganizationRequest;
 import in.respondlyai.org.entity.*;
 import in.respondlyai.org.repository.*;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +24,16 @@ public class OrganizationService {
     private final IndustryRepository industryRepository;
     private final OrganizationTypeRepository organizationTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
+
+    @Transactional(readOnly = true)
+    public Organization getOrganizationById(UUID id) {
+        log.info("Fetching organization with ID: {}", id);
+
+        // .findById() returns an Optional.
+        // If it's not there, we throw a specific "Not Found" exception.
+        return organizationRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Organization not found with ID: " + id));
+    }
 
     @Transactional
     public Organization createOrganization(CreateOrganizationRequest request, String ownerUserId) {
@@ -61,5 +78,15 @@ public class OrganizationService {
         }
 
         return savedOrg;
+    }
+
+    @Transactional(readOnly = true) // readOnly = true optimizes Hibernate for SELECT queries!
+    public Page<Organization> getAllOrganizations(int page, int size) {
+        log.info("Fetching organizations page {} with size {}", page, size);
+
+        // We want the newest organizations first
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        return organizationRepository.findAll(pageable);
     }
 }
