@@ -35,8 +35,6 @@ public class JwtService {
 
     public boolean isTokenValid(String token) {
         try {
-            // If the token is expired, tampered with, or malformed,
-            // the parser will throw an exception immediately.
             Jwts.parser()
                     .verifyWith(signingKey)
                     .build()
