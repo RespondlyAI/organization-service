@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: organization-service
+    security:
+      jwt:
+        # This MUST be the exact same 256-bit (32+ character) string used in your Auth Service!
+        secret-key: "2f6b3d4f5c6e7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
@@ -16,8 +20,6 @@ spring:
 
   jpa:
     hibernate:
-      # We will use 'update' strictly for today to let Spring generate our tables initially.
-      # Once we finalize the entities, we will switch this to 'validate' and extract the SQL for Flyway.
       ddl-auto: validate
     show-sql: true
     open-in-view: false
@@ -26,7 +28,6 @@ spring:
       hibernate:
         format_sql: true
 
-  # We will turn Flyway off temporarily just while we write our Java Entity classes.
   flyway:
     enabled: true
     locations: classpath:db/migration
