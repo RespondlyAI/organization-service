@@ -4,10 +4,6 @@ server:
 spring:
   application:
     name: organization-service
-    security:
-      jwt:
-        # This MUST be the exact same 256-bit (32+ character) string used in your Auth Service!
-        secret-key: "2f6b3d4f5c6e7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
@@ -41,3 +37,8 @@ management:
     web:
       exposure:
         include: health, metrics
+
+application:
+  security:
+    jwt:
+      secret-key: "2f6b3d4f5c6e7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
