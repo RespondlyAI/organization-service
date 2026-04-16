@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
 @Service
+@Slf4j
 public class JwtService {
 
     @Value("${application.security.jwt.secret-key}")
@@ -41,6 +43,7 @@ public class JwtService {
                     .parseSignedClaims(token);
             return true;
         } catch (Exception e) {
+            log.error("JWT Validation failed: {}", e.getMessage());
             return false;
         }
     }
