@@ -41,4 +41,4 @@ management:
 application:
   security:
     jwt:
-      secret-key: "2f6b3d4f5c6e7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+      secret-key: "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
