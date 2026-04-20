@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/organizations")
+@RequestMapping("/api/v1/org")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Organization Management", description = "Endpoints for creating and retrieving organizations")
@@ -33,7 +33,7 @@ public class OrganizationController {
 
     private final OrganizationService organizationService;
 
-    @PostMapping
+    @PostMapping("/create")
     @Operation(summary = "Create a new organization", description = "Creates a new organization and queues invitations for users. Requires a valid JWT.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Organization created successfully", content = @Content(schema = @Schema(implementation = OrganizationResponse.class))),
