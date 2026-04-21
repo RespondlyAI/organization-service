@@ -31,29 +31,48 @@ public class OrganizationService {
 
         // .findById() returns an Optional.
         // If it's not there, we throw a specific "Not Found" exception.
-        return organizationRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Organization not found with ID: " + id));
+        Organization organization = organizationRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.warn("Organization not found with ID: {}", id);
+                    return new EntityNotFoundException("Organization not found with ID: " + id);
+                });
+
+        log.debug("Successfully found organization: {}", organization.getName());
+        return organization;
     }
 
     @Transactional
     public Organization createOrganization(CreateOrganizationRequest request, String ownerUserId) {
-        log.info("Attempting to create organization: {}", request.name());
+        log.info("Attempting to create organization: {} for user: {}", request.name(), ownerUserId);
 
         // Fail Fast: Check if the organization name is already taken
         if (organizationRepository.existsByName(request.name())) {
+            log.warn("Failed to create organization: Name '{}' is already taken", request.name());
             throw new IllegalArgumentException("Organization name is already taken.");
         }
 
         // Fetch the related Reference Data from the DB using the IDs from the DTO
         // If the frontend sends a fake/bad ID, .orElseThrow() instantly stops the process.
         Industry industry = industryRepository.findById(request.industryId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid Industry ID"));
+                .orElseThrow(() -> {
+                    log.warn("Invalid Industry ID: {}", request.industryId());
+                    return new IllegalArgumentException("Invalid Industry ID");
+                });
+        log.debug("Industry found: {}", industry.getName());
 
         OrganizationType orgType = organizationTypeRepository.findById(request.organizationTypeId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid Organization Type ID"));
+                .orElseThrow(() -> {
+                    log.warn("Invalid Organization Type ID: {}", request.organizationTypeId());
+                    return new IllegalArgumentException("Invalid Organization Type ID");
+                });
+        log.debug("Organization type found: {}", orgType.getName());
 
         SubscriptionPlan defaultPlan = subscriptionPlanRepository.findAll().stream().findFirst()
-                .orElseThrow(() -> new IllegalStateException("Critical: No subscription plans found in DB!"));
+                .orElseThrow(() -> {
+                    log.error("CRITICAL: No subscription plans found in DB!");
+                    return new IllegalStateException("Critical: No subscription plans found in DB!");
+                });
+        log.debug("Using default subscription plan: {}", defaultPlan.getName());
 
         // Build the Organization Entity
         Organization newOrganization = Organization.builder()
@@ -69,11 +88,11 @@ public class OrganizationService {
 
         // Save to PostgreSQL
         Organization savedOrg = organizationRepository.save(newOrganization);
-        log.info("Successfully saved Organization to DB with ID: {}", savedOrg.getId());
+        log.info("Organization created successfully: ID={}, Name={}", savedOrg.getId(), savedOrg.getName());
 
         // TODO: Fire Event to AWS API Gateway for the Invited Users
         if (request.invitedUsers() != null && !request.invitedUsers().isEmpty()) {
-            log.info("Queuing invitations for {} users to Auth Service...", request.invitedUsers().size());
+            log.info("Queuing invitations for {} users to Auth Service for Org: {}", request.invitedUsers().size(), savedOrg.getName());
             // publishEventToAws(savedOrg.getId(), request.invitedUsers());
         }
 
@@ -87,6 +106,9 @@ public class OrganizationService {
         // We want the newest organizations first
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
-        return organizationRepository.findAll(pageable);
+        Page<Organization> orgPage = organizationRepository.findAll(pageable);
+        log.info("Retrieved {} organizations for page {}", orgPage.getNumberOfElements(), page);
+        
+        return orgPage;
     }
 }

@@ -56,6 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    log.debug("Successfully authenticated user: {} with role: {}", userId, role);
                 }
             }
         } catch (Exception ex) {
