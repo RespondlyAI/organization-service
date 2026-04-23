@@ -5,12 +5,14 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @OpenAPIDefinition(
         info = @Info(title = "Organization Service API", version = "v1", description = "Manages organizations and reference data"),
-        security = @SecurityRequirement(name = "bearerAuth") // Applies the token to all endpoints globally
+        security = @SecurityRequirement(name = "bearerAuth"), // Applies the token to all endpoints globally
+        servers = {@Server(url = "/", description = "API Gateway Server")}
 )
 @SecurityScheme(
         name = "bearerAuth",
