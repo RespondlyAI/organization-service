@@ -1,4 +1,4 @@
-package in.respondlyai.org.dto;
+package in.respondlyai.org.dto.events;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
