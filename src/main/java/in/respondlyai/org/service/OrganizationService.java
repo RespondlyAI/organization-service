@@ -1,5 +1,6 @@
 package in.respondlyai.org.service;
 
+import in.respondlyai.org.dto.events.OrganizationCreatedEvent;
 import in.respondlyai.org.dto.request.CreateOrganizationRequest;
 import in.respondlyai.org.entity.*;
 import in.respondlyai.org.repository.*;
@@ -13,6 +14,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -25,12 +28,13 @@ public class OrganizationService {
     private final OrganizationTypeRepository organizationTypeRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
 
+    // Injecting the Kafka Producer
+    private final KafkaProducerService kafkaProducerService;
+
     @Transactional(readOnly = true)
     public Organization getOrganizationById(UUID id) {
         log.info("Fetching organization with ID: {}", id);
 
-        // .findById() returns an Optional.
-        // If it's not there, we throw a specific "Not Found" exception.
         Organization organization = organizationRepository.findById(id)
                 .orElseThrow(() -> {
                     log.warn("Organization not found with ID: {}", id);
@@ -52,7 +56,6 @@ public class OrganizationService {
         }
 
         // Fetch the related Reference Data from the DB using the IDs from the DTO
-        // If the frontend sends a fake/bad ID, .orElseThrow() instantly stops the process.
         Industry industry = industryRepository.findById(request.industryId())
                 .orElseThrow(() -> {
                     log.warn("Invalid Industry ID: {}", request.industryId());
@@ -78,7 +81,7 @@ public class OrganizationService {
         Organization newOrganization = Organization.builder()
                 .name(request.name())
                 .description(request.description())
-                .createdByUserId(ownerUserId) // TODO: Eventually, this comes from the JWT Auth token
+                .createdByUserId(ownerUserId)
                 .subscriptionStatus(SubscriptionStatus.trialing)
                 .status(OrgStatus.active)
                 .industry(industry)
@@ -90,25 +93,38 @@ public class OrganizationService {
         Organization savedOrg = organizationRepository.save(newOrganization);
         log.info("Organization created successfully: ID={}, Name={}", savedOrg.getId(), savedOrg.getName());
 
-        // TODO: Fire Event to AWS API Gateway for the Invited Users
+        // Map invited users (if any) to the Event DTO payload
+        List<OrganizationCreatedEvent.InvitedUser> invitedUsers = Collections.emptyList();
         if (request.invitedUsers() != null && !request.invitedUsers().isEmpty()) {
-            log.info("Queuing invitations for {} users to Auth Service for Org: {}", request.invitedUsers().size(), savedOrg.getName());
-            // publishEventToAws(savedOrg.getId(), request.invitedUsers());
+            invitedUsers = request.invitedUsers().stream()
+                    .map(user -> new OrganizationCreatedEvent.InvitedUser(user.email(), user.role()))
+                    .toList();
+            log.info("Including {} invited users in the Kafka event for Org: {}", invitedUsers.size(), savedOrg.getName());
         }
+
+        // Build the Kafka Event
+        // Note: parsing ownerUserId to UUID assuming your DTO expects a UUID type for ownerUserId
+        OrganizationCreatedEvent event = OrganizationCreatedEvent.builder()
+                .organizationId(savedOrg.getId())
+                .ownerUserId(UUID.fromString(ownerUserId))
+                .invitedUsers(invitedUsers)
+                .build();
+
+        // Fire the event to Kafka
+        kafkaProducerService.sendOrganizationCreatedEvent(event);
 
         return savedOrg;
     }
 
-    @Transactional(readOnly = true) // readOnly = true optimizes Hibernate for SELECT queries!
+    @Transactional(readOnly = true)
     public Page<Organization> getAllOrganizations(int page, int size) {
         log.info("Fetching organizations page {} with size {}", page, size);
 
-        // We want the newest organizations first
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         Page<Organization> orgPage = organizationRepository.findAll(pageable);
         log.info("Retrieved {} organizations for page {}", orgPage.getNumberOfElements(), page);
-        
+
         return orgPage;
     }
 }
